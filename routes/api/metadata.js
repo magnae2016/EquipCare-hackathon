@@ -5,7 +5,7 @@ var pool = require("../../module/db");
 /* GET /api/metadata/alarms */
 router.get("/alarms", async (req, res, next) => {
     const SQL = `
-        SELECT EVENT_NAME, count(*) as COUNT
+        SELECT EVENT_NAME AS name, count(*) as COUNT
         FROM
             events
         WHERE
