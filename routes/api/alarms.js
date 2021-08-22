@@ -56,4 +56,64 @@ router.get(["/", "/:filter"], async (req, res, next) => {
     res.json(rows);
 });
 
+/* GET /api/alarms/:name/equipments */
+router.get("/:name/equipments", async (req, res, next) => {
+    // var day = moment().format("YYYY-MM-DD");
+    var day = "2021-07-01"; // TODO: revert today
+    const { startDate = day, endDate = startDate } = req.query;
+    const response = {};
+    const { name: EVENT_NAME } = req.params;
+
+    const SQL1 = `
+        SELECT 
+        A.EQ_NAME, C.EQ_TESTER, COUNT(A.EQ_NAME) AS COUNT
+        FROM
+            ALARM AS A
+                LEFT JOIN
+            events AS B ON A.RESERVED_1 = B.EVENT_CODE
+                AND A.EQ_MODEL = B.EQ_MODEL
+                LEFT JOIN
+            equipments AS C ON A.EQ_NAME = C.EQ_NAME
+        WHERE
+            DATE_FORMAT(A.START_TIME, '%Y-%m-%d') between '${startDate}' and '${endDate}'
+                AND B.EVENT_NAME = '${EVENT_NAME}'
+        GROUP BY A.EQ_NAME
+        ORDER BY COUNT DESC;
+    `;
+
+    const SQL2 = `
+        SELECT 
+            COUNT(1) as COUNT
+        FROM
+            ALARM AS A
+                LEFT JOIN
+            events AS B ON A.RESERVED_1 = B.EVENT_CODE
+                AND A.EQ_MODEL = B.EQ_MODEL
+        WHERE
+            DATE_FORMAT(A.START_TIME, '%Y-%m-%d') between '${startDate}' and '${endDate}'
+                AND B.EVENT_NAME = '${EVENT_NAME}'
+    `;
+    const SQL3 = `
+        SELECT 
+            *
+        FROM
+            ark_events.last_update_time;
+    `;
+
+    const [result1, result2, result3] = await Promise.all([
+        pool.query(SQL1),
+        pool.query(SQL2),
+        pool.query(SQL3),
+    ]);
+
+    let [rows] = result3;
+    response.last_update_time = rows[0].update_time;
+    [rows] = result2;
+    response.count = rows[0].COUNT;
+    [rows] = result1;
+    response.datas = rows;
+
+    res.json(response);
+});
+
 module.exports = router;
