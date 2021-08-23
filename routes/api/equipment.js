@@ -78,7 +78,7 @@ router.get(["/alarms", "/alarms/:filter"], async (req, res, next) => {
         SELECT 
             *
         FROM
-            ark_events.last_update_time;
+            ark_prober.last_update_time;
     `;
 
     const [result1, result2, result3] = await Promise.all([
