@@ -3,6 +3,36 @@ var router = express.Router();
 var moment = require("moment");
 var pool = require("../../../module/db");
 
+/* GET /api/v1/alarms/:filter/order */
+router.get("/:filter/order", async (req, res, next) => {
+    var day = moment().format("YYYY-MM-DD");
+
+    const { startDate = day } = req.query;
+    const { filter } = req.params;
+    const RESERVED_1 = {
+        error: 2,
+        down: 3,
+    };
+    const CODE = RESERVED_1[filter];
+    const SQL = `
+        SELECT 
+            B.EVENT_NAME, count(*) as COUNT
+        FROM
+            ALARM AS A
+                LEFT JOIN
+            events AS B ON A.RESERVED_1 = B.EVENT_CODE
+                AND A.EQ_MODEL = B.EQ_MODEL
+        WHERE
+            LEFT(A.START_TIME, 10) = '${startDate}'
+            AND B.RESERVED_1 = ${CODE}
+        GROUP BY B.EVENT_NAME
+        ORDER BY COUNT desc;
+    `;
+
+    const [rows, fields] = await pool.query(SQL);
+    res.json(rows);
+});
+
 /* GET /api/v1/alarms/:filter/consumed */
 router.get("/:filter/consumed", async (req, res, next) => {
     var day = moment().format("YYYY-MM-DD");
